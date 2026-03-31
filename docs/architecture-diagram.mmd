@@ -1,0 +1,80 @@
+%% PRISM Architecture - render at https://mermaid.live
+
+flowchart TB
+    subgraph API["🌐 API Layer (src/api/)"]
+        routes["routes/<br/>health | ingest | query | collections | study"]
+        models["models/<br/>Pydantic schemas"]
+        deps["dependencies.py<br/>DI Container"]
+    end
+
+    subgraph Domain["📚 Domain Layer"]
+        subgraph Ingestion["ingestion/"]
+            pipeline["pipeline.py<br/>orchestration"]
+            parser["pdf_parser.py"]
+            chunker["chunker.py"]
+            structure["structure.py<br/>chapters/sections"]
+        end
+        
+        subgraph RAG["rag/"]
+            engine["engine.py<br/>RAG orchestration"]
+            retriever["retriever.py<br/>semantic search"]
+            generator["generator.py<br/>Ollama client"]
+            prompts["prompts.py"]
+        end
+        
+        subgraph Study["study/"]
+            study_engine["engine.py"]
+            modes["modes.py<br/>quiz/explain/connect"]
+        end
+    end
+
+    subgraph Infra["🔧 Infrastructure"]
+        embedder["embeddings/embedder.py<br/>BGE-M3"]
+        store["vectorstore/qdrant_store.py"]
+        config["config.py<br/>Pydantic Settings"]
+    end
+
+    subgraph External["☁️ External Services"]
+        qdrant[(Qdrant<br/>Vector DB)]
+        ollama[Ollama<br/>Local LLM]
+    end
+
+    %% API -> Domain
+    routes --> pipeline
+    routes --> engine
+    routes --> study_engine
+    deps --> embedder
+    deps --> store
+    deps --> engine
+
+    %% Ingestion flow
+    pipeline --> parser
+    pipeline --> chunker
+    pipeline --> structure
+    chunker --> embedder
+    
+    %% RAG flow
+    engine --> retriever
+    engine --> generator
+    retriever --> embedder
+    retriever --> store
+    generator --> ollama
+    
+    %% Study
+    study_engine --> retriever
+    study_engine --> generator
+    study_engine --> modes
+    
+    %% Infrastructure -> External
+    store --> qdrant
+    embedder -.-> |"loads model"| embedder
+    
+    classDef api fill:#2196F3,color:#fff,stroke:#1565C0,stroke-width:2px
+    classDef domain fill:#FF9800,color:#000,stroke:#E65100,stroke-width:2px
+    classDef infra fill:#9C27B0,color:#fff,stroke:#6A1B9A,stroke-width:2px
+    classDef external fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:2px
+    
+    class routes,models,deps api
+    class pipeline,parser,chunker,structure,engine,retriever,generator,prompts,study_engine,modes domain
+    class embedder,store,config infra
+    class qdrant,ollama external
