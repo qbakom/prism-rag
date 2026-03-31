@@ -1,0 +1,35 @@
+[project]
+name = "prism"
+version = "0.1.0"
+description = "Personal Retrieval & Intelligence System for Memory"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic-settings>=2.7",
+    "python-multipart>=0.0.18",  # obsługa upload plików (form data)
+    "pymupdf>=1.25",              # parsowanie PDF (szybki, zachowuje strukturę)
+    "langchain-text-splitters>=0.3",  # strategie chunkingu (industry standard)
+    "qdrant-client>=1.12",            # klient bazy wektorowej
+    "sentence-transformers>=4.1",     # modele embeddingów (wrappuje HuggingFace)
+    "httpx>=0.28",                    # klient HTTP do Ollama API
+    "streamlit>=1.56.0",
+    "google-genai>=1.69.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.28",       # potrzebny do testowania FastAPI (async test client)
+    "ruff>=0.9",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]  # errors, pyflakes, isort, pyupgrade
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
