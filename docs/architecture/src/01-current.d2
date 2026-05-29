@@ -1,0 +1,67 @@
+direction: down
+vars: { d2-config: { theme-id: 200 } }
+title: |md
+  # PRISM — architektura obecna (as-is)
+| { near: top-center; style.font-size: 24 }
+
+fe: Frontend  (React + TS + Tailwind v4 + Vite) {
+  style.fill: "#085041"; style.stroke: "#5dcaa5"; style.font-color: "#9fe1cb"
+  app: App.tsx\n(ścieżka nauki → czytanie → quiz ABCD) { style.fill: "#085041"; style.stroke: "#5dcaa5"; style.font-color: "#9fe1cb" }
+  api_ts: api.ts\n(klient REST, VITE_API_URL) { style.fill: "#085041"; style.stroke: "#5dcaa5"; style.font-color: "#9fe1cb" }
+  types: types.ts { style.fill: "#085041"; style.stroke: "#5dcaa5"; style.font-color: "#9fe1cb" }
+  app -> api_ts
+}
+
+api: API  (FastAPI, CORS *) {
+  style.fill: "#0c447c"; style.stroke: "#85b7eb"; style.font-color: "#b5d4f4"
+  routes: routes/\nstudy · ingest · query · collections · health { style.fill: "#0c447c"; style.stroke: "#85b7eb"; style.font-color: "#b5d4f4" }
+  models: models/\n(Pydantic: TopicInfo, QuizResponse…) { style.fill: "#0c447c"; style.stroke: "#85b7eb"; style.font-color: "#b5d4f4" }
+  deps: dependencies.py\n(singletony: embedder, store, engine) { style.fill: "#0c447c"; style.stroke: "#85b7eb"; style.font-color: "#b5d4f4" }
+  routes -> models
+  routes -> deps
+}
+
+core: Rdzeń nauki + RAG {
+  style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6"
+  study: StudyEngine\n(study/engine, modes, quiz) { style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6" }
+  retr: Retriever\n(embed → search → dedup) { style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6" }
+  gen: Generator\n(fabryka ollama | gemini) { style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6" }
+  study -> retr
+  study -> gen
+}
+
+ingest: Ingestion (offline, przy uploadzie PDF) {
+  style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3"
+  parser: pdf_parser\n(PyMuPDF) { style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3" }
+  struct: structure.py\n(detekcja rozdziałów/sekcji) { style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3" }
+  chunk: chunker\n(RecursiveCharacterSplitter\nsize=1000 overlap=200) { style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3" }
+  pipe: pipeline.py { style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3" }
+  parser -> struct -> chunk -> pipe
+}
+
+emb: Embeddings {
+  style.fill: "#27500a"; style.stroke: "#97c459"; style.font-color: "#c0dd97"
+  embedder: Embedder\nBAAI/bge-m3 (dense+sparse+ColBERT)\ndim=1024 { style.fill: "#27500a"; style.stroke: "#97c459"; style.font-color: "#c0dd97" }
+}
+
+store: Vector store {
+  style.fill: "#633806"; style.stroke: "#ef9f27"; style.font-color: "#fac775"
+  qdrant_store: QdrantStore\nsearch · list_topics · read_chapter · _scroll_all { style.fill: "#633806"; style.stroke: "#ef9f27"; style.font-color: "#fac775" }
+}
+
+ext: Zależności zewnętrzne {
+  style.fill: "#72243e"; style.stroke: "#ed93b1"; style.font-color: "#ed93b1"
+  qdrant: Qdrant (docker)\nwektory + payload { shape: cylinder; style.fill: "#72243e"; style.stroke: "#ed93b1"; style.font-color: "#ed93b1" }
+  llm: LLM\nOllama (lokalny) | Gemini (API) { style.fill: "#72243e"; style.stroke: "#ed93b1"; style.font-color: "#ed93b1" }
+}
+
+fe.api_ts -> api.routes: HTTPS REST\n/study/* /ingest /collections
+api.deps -> core.study
+api.routes -> ingest.pipe: POST /ingest
+core.retr -> emb.embedder
+core.retr -> store.qdrant_store
+core.study -> store.qdrant_store: read_chapter\n(materiał do quizu/czytania)
+core.gen -> ext.llm
+ingest.pipe -> emb.embedder: embed chunków
+ingest.pipe -> store.qdrant_store: upsert punktów
+store.qdrant_store -> ext.qdrant

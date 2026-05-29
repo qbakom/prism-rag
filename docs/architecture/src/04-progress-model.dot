@@ -1,0 +1,63 @@
+digraph ERD {
+  bgcolor="#1a1a1a";
+  rankdir=LR;
+  node [shape=none, fontname="Helvetica"];
+  edge [color="#9c9a92", penwidth=1.2, fontcolor="#b4b2a9", fontsize=10, fontname="Helvetica"];
+  labelloc="t"; fontcolor="#d3d1c7"; fontsize=18;
+  label="PRISM — model danych progresu (Stage 3/5)  ·  localStorage najpierw, potem SQLite";
+
+  book [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#085041" COLOR="#5dcaa5">
+      <TR><TD COLSPAN="2" BGCOLOR="#074538"><FONT COLOR="#9fe1cb" POINT-SIZE="13"><B>collection (książka, w Qdrant)</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#5dcaa5">*name</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#9fe1cb">TEXT pk</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#5dcaa5">documents_count</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#9fe1cb">INT</FONT></TD></TR>
+    </TABLE>
+  >];
+
+  topic [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#0c447c" COLOR="#85b7eb">
+      <TR><TD COLSPAN="2" BGCOLOR="#0a3a6b"><FONT COLOR="#b5d4f4" POINT-SIZE="13"><B>topic (z list_topics)</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#85b7eb">+collection</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#b5d4f4">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#85b7eb">*chapter</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#b5d4f4">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#85b7eb">title</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#b5d4f4">TEXT</FONT></TD></TR>
+    </TABLE>
+  >];
+
+  reading [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#3c3489" COLOR="#afa9ec">
+      <TR><TD COLSPAN="2" BGCOLOR="#332d77"><FONT COLOR="#cecbf6" POINT-SIZE="13"><B>reading_progress</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#afa9ec">*id</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#cecbf6">pk</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#afa9ec">+collection</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#cecbf6">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#afa9ec">+chapter</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#cecbf6">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#afa9ec">status</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#cecbf6">read|unread</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#afa9ec">last_read_at</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#cecbf6">TS</FONT></TD></TR>
+    </TABLE>
+  >];
+
+  attempt [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#633806" COLOR="#ef9f27">
+      <TR><TD COLSPAN="2" BGCOLOR="#5a3205"><FONT COLOR="#fac775" POINT-SIZE="13"><B>quiz_attempt</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#ef9f27">*id</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#fac775">pk</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#ef9f27">+collection</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#fac775">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#ef9f27">+chapter</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#fac775">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#ef9f27">score / total</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#fac775">INT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#ef9f27">taken_at</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#fac775">TS</FONT></TD></TR>
+    </TABLE>
+  >];
+
+  fsrs [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" BGCOLOR="#712b13" COLOR="#f0997b">
+      <TR><TD COLSPAN="2" BGCOLOR="#5f230f"><FONT COLOR="#f5c4b3" POINT-SIZE="13"><B>fsrs_card (Stage 5)</B></FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#f0997b">*id</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#f5c4b3">pk</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#f0997b">+collection / +chapter</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#f5c4b3">TEXT</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#f0997b">due</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#f5c4b3">TS</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#f0997b">stability / difficulty</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#f5c4b3">REAL</FONT></TD></TR>
+      <TR><TD ALIGN="LEFT"><FONT COLOR="#f0997b">reps / lapses / state</FONT></TD><TD ALIGN="LEFT"><FONT COLOR="#f5c4b3">INT</FONT></TD></TR>
+    </TABLE>
+  >];
+
+  book -> topic [label="1..*"];
+  topic -> reading [label="1..1"];
+  topic -> attempt [label="1..*"];
+  topic -> fsrs [label="1..*"];
+}

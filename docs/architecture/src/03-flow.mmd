@@ -1,0 +1,42 @@
+%%{init: {'theme': 'dark'}}%%
+sequenceDiagram
+  autonumber
+  actor U as Użytkownik
+  participant FE as Frontend (App.tsx)
+  participant API as FastAPI
+  participant ING as Ingestion pipeline
+  participant EMB as Embedder (bge-m3)
+  participant VS as QdrantStore
+  participant LLM as Generator (ollama/gemini)
+
+  rect rgb(40,60,40)
+  note over U,VS: FAZA A — Ingestion (offline, raz na książkę)
+  U->>FE: upload PDF + nazwa kolekcji
+  FE->>API: POST /ingest
+  API->>ING: parse -> structure -> chunk
+  ING->>EMB: embed chunków
+  EMB-->>ING: wektory (dim=1024)
+  ING->>VS: upsert punktów (content + metadata)
+  VS-->>API: liczba dodanych
+  API-->>FE: 200 OK
+  end
+
+  rect rgb(40,48,70)
+  note over U,LLM: FAZA B — Nauka (klikalna ścieżka)
+  U->>FE: wybór kolekcji
+  FE->>API: GET /study/topics?collection=X
+  API->>VS: list_topics (grupowanie po chapter)
+  VS-->>FE: lista tematów wg strony
+  U->>FE: klik temat
+  FE->>API: GET /study/read?collection=X&chapter=Y
+  API->>VS: read_chapter (sort strona+chunk)
+  VS-->>FE: ciągły materiał (dedup overlap · Stage 1)
+  U->>FE: Sprawdź się
+  FE->>API: POST /study/quiz
+  API->>VS: read_chapter -> materiał (limit 6000)
+  API->>LLM: build_quiz_messages
+  LLM-->>API: JSON (retry jeśli brudny · Stage 1)
+  API-->>FE: pytania ABCD + correct_index
+  U->>FE: klik odpowiedzi
+  FE-->>U: ocena natychmiast (zielone/czerwone + wyjaśnienie)
+  end

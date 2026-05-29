@@ -1,0 +1,81 @@
+direction: down
+vars: { d2-config: { theme-id: 200 } }
+title: |md
+  # PRISM — architektura docelowa (to-be) · etapy roadmapy nałożone
+| { near: top-center; style.font-size: 22 }
+
+fe: Frontend  (React + TS) {
+  style.fill: "#085041"; style.stroke: "#5dcaa5"; style.font-color: "#9fe1cb"
+  app: App.tsx\nklikalna ścieżka + czytanie + quiz { style.fill: "#085041"; style.stroke: "#5dcaa5"; style.font-color: "#9fe1cb" }
+  cache: cache odczytów chapter-content  · Stage 1 { style.fill: "#0a6450"; style.stroke: "#7ff0c8"; style.font-color: "#caffe9" }
+  prog_ui: UI progresu (przeczytane/zaliczone)  · Stage 3 { style.fill: "#0a6450"; style.stroke: "#7ff0c8"; style.font-color: "#caffe9" }
+  due_ui: Powtórki na dziś  · Stage 5 { style.fill: "#0a6450"; style.stroke: "#7ff0c8"; style.font-color: "#caffe9" }
+  app -> cache
+}
+
+api: API  (FastAPI) {
+  style.fill: "#0c447c"; style.stroke: "#85b7eb"; style.font-color: "#b5d4f4"
+  routes: routes/  study · ingest · collections { style.fill: "#0c447c"; style.stroke: "#85b7eb"; style.font-color: "#b5d4f4" }
+  prog_api: routes/progress  · Stage 3\nGET/PUT stan + wyniki quizów { style.fill: "#0e5fae"; style.stroke: "#a9d2ff"; style.font-color: "#dbecff" }
+}
+
+core: Rdzeń nauki + RAG {
+  style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6"
+  study: StudyEngine { style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6" }
+  quiz: quiz.py + retry parsowania  · Stage 1 { style.fill: "#4b41ad"; style.stroke: "#cfc9ff"; style.font-color: "#e7e3ff" }
+  retr: Retriever + hybrid (dense+sparse BM25)  · Stage 4 { style.fill: "#4b41ad"; style.stroke: "#cfc9ff"; style.font-color: "#e7e3ff" }
+  rerank: Reranker bge-reranker-v2-m3  · Stage 4 { style.fill: "#4b41ad"; style.stroke: "#cfc9ff"; style.font-color: "#e7e3ff" }
+  gen: Generator (ollama | gemini) { style.fill: "#3c3489"; style.stroke: "#afa9ec"; style.font-color: "#cecbf6" }
+  fsrs: FSRS scheduler py-fsrs  · Stage 5 { style.fill: "#4b41ad"; style.stroke: "#cfc9ff"; style.font-color: "#e7e3ff" }
+  study -> retr -> rerank
+  study -> quiz
+  study -> gen
+}
+
+ingest: Ingestion {
+  style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3"
+  parser: Docling parser  · Stage 2\nwzory do LaTeX, tabele, lepsze rozdziały { style.fill: "#8f3517"; style.stroke: "#ffb89c"; style.font-color: "#ffd9c9" }
+  abstr: abstrakcja DocumentParser\n(PyMuPDF lub Docling wymienne) { style.fill: "#712b13"; style.stroke: "#f0997b"; style.font-color: "#f5c4b3" }
+  chunk: chunker + dedup overlap w read  · Stage 1 { style.fill: "#8f3517"; style.stroke: "#ffb89c"; style.font-color: "#ffd9c9" }
+  parser -> abstr -> chunk
+}
+
+emb: Embeddings {
+  style.fill: "#27500a"; style.stroke: "#97c459"; style.font-color: "#c0dd97"
+  embedder: Embedder bge-m3\n(dense + sparse — sparse zasila hybrid) { style.fill: "#27500a"; style.stroke: "#97c459"; style.font-color: "#c0dd97" }
+}
+
+store: Storage {
+  style.fill: "#633806"; style.stroke: "#ef9f27"; style.font-color: "#fac775"
+  qdrant_store: QdrantStore (wektory) { style.fill: "#633806"; style.stroke: "#ef9f27"; style.font-color: "#fac775" }
+  prog_db: Progress store  · Stage 3/5\nlocalStorage do SQLite\n(progres, wyniki, karty FSRS) { shape: cylinder; style.fill: "#7d4708"; style.stroke: "#ffc14d"; style.font-color: "#ffe0a3" }
+}
+
+ext: Zależności zewnętrzne {
+  style.fill: "#72243e"; style.stroke: "#ed93b1"; style.font-color: "#ed93b1"
+  qdrant: Qdrant (docker) { shape: cylinder; style.fill: "#72243e"; style.stroke: "#ed93b1"; style.font-color: "#ed93b1" }
+  llm: LLM Ollama | Gemini { style.fill: "#72243e"; style.stroke: "#ed93b1"; style.font-color: "#ed93b1" }
+}
+
+deferred: ⛔ Świadomie ODŁOŻONE (NIE implementować teraz) {
+  style.fill: "#2b2b29"; style.stroke: "#6b6960"; style.font-color: "#9a978d"
+  d1: moduł medyczny { style.fill: "#2b2b29"; style.stroke: "#6b6960"; style.font-color: "#9a978d" }
+  d2: architektura agentowa { style.fill: "#2b2b29"; style.stroke: "#6b6960"; style.font-color: "#9a978d" }
+  d3: ocena głosowa (Whisper/ASR) { style.fill: "#2b2b29"; style.stroke: "#6b6960"; style.font-color: "#9a978d" }
+  d4: DKT / knowledge tracing { style.fill: "#2b2b29"; style.stroke: "#6b6960"; style.font-color: "#9a978d" }
+  d5: portfolio / CV { style.fill: "#2b2b29"; style.stroke: "#6b6960"; style.font-color: "#9a978d" }
+}
+
+fe.app -> api.routes: REST
+fe.prog_ui -> api.prog_api: Stage 3
+fe.due_ui -> core.fsrs: Stage 5
+api.routes -> core.study
+api.prog_api -> store.prog_db
+core.retr -> emb.embedder
+core.retr -> store.qdrant_store
+core.rerank -> core.gen: top-N po rerankingu
+core.fsrs -> store.prog_db
+core.gen -> ext.llm
+ingest.chunk -> emb.embedder
+ingest.chunk -> store.qdrant_store
+store.qdrant_store -> ext.qdrant
