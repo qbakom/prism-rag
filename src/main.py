@@ -8,6 +8,7 @@ Dlaczego funkcja a nie globalna zmienna?
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes import collections, health, ingest, query, study
 
@@ -17,6 +18,16 @@ def create_app() -> FastAPI:
         title="PRISM",
         description="Personal Retrieval & Intelligence System for Memory",
         version="0.1.0",
+    )
+
+    # CORS - frontend (Vite dev server) działa na innym porcie niż API,
+    # więc przeglądarka blokuje requesty bez tych nagłówków.
+    # Dla dev pozwalamy na wszystko; produkcyjnie zawęzić do konkretnego origin.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Montowanie routerów - każdy moduł rejestruje swoje endpointy

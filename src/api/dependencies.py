@@ -44,4 +44,4 @@ def get_rag_engine() -> RAGEngine:
 @lru_cache
 def get_study_engine() -> StudyEngine:
     retriever, generator = _get_retriever_and_generator()
-    return StudyEngine(retriever=retriever, generator=generator)
+    return StudyEngine(retriever=retriever, generator=generator, store=get_store())

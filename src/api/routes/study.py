@@ -8,11 +8,19 @@ Trzy tryby:
 
 from fastapi import APIRouter, Depends
 
-from src.api.dependencies import get_study_engine
+from src.api.dependencies import get_store, get_study_engine
 from src.api.models.query import Source
-from src.api.models.study import StudyRequest
+from src.api.models.study import (
+    QuizGenerateRequest,
+    QuizQuestion,
+    QuizResponse,
+    ReadResponse,
+    StudyRequest,
+    TopicInfo,
+)
 from src.api.models.study import StudyResponse as StudyResponseModel
 from src.study.engine import StudyEngine
+from src.vectorstore.qdrant_store import QdrantStore
 
 router = APIRouter(prefix="/study", tags=["study"])
 
@@ -44,4 +52,43 @@ async def study(
         mode=result.mode,
         chapter=result.chapter,
         sources=sources,
+    )
+
+
+@router.get("/topics", response_model=list[TopicInfo])
+async def list_topics(
+    collection: str,
+    store: QdrantStore = Depends(get_store),
+) -> list[TopicInfo]:
+    """Ścieżka nauki: uporządkowana lista tematów (rozdziałów) w kolekcji."""
+    return [TopicInfo(**t) for t in store.list_topics(collection)]
+
+
+@router.get("/read", response_model=ReadResponse)
+async def read_topic(
+    collection: str,
+    chapter: str | None = None,
+    store: QdrantStore = Depends(get_store),
+) -> ReadResponse:
+    """Materiał do przeczytania dla tematu - ciągły tekst w kolejności czytania."""
+    items = store.read_chapter(collection, chapter)
+    content = "\n\n".join(i["content"] for i in items)
+    filename = items[0]["filename"] if items else None
+    return ReadResponse(chapter=chapter, content=content, filename=filename)
+
+
+@router.post("/quiz", response_model=QuizResponse)
+async def generate_quiz(
+    request: QuizGenerateRequest,
+    engine: StudyEngine = Depends(get_study_engine),
+) -> QuizResponse:
+    """Wygeneruj klikalne pytania ABCD dla tematu (zero pisania, auto-ocena)."""
+    questions = engine.quiz(
+        collection=request.collection,
+        chapter=request.chapter,
+        num_questions=request.num_questions,
+    )
+    return QuizResponse(
+        chapter=request.chapter,
+        questions=[QuizQuestion(**q) for q in questions],
     )

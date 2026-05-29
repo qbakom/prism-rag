@@ -14,8 +14,14 @@ from dataclasses import dataclass
 from src.rag.generator import Generator
 from src.rag.retriever import RetrievedChunk, Retriever
 from src.study.modes import StudyMode, build_study_messages
+from src.study.quiz import build_quiz_messages, parse_quiz_json
+from src.vectorstore.qdrant_store import QdrantStore
 
 logger = logging.getLogger(__name__)
+
+# Limit materiału wstrzykiwanego do LLM przy generowaniu quizu (znaki).
+# Chroni przed przekroczeniem okna kontekstowego na dużych rozdziałach.
+QUIZ_MATERIAL_LIMIT = 6000
 
 
 @dataclass
@@ -31,9 +37,17 @@ class StudyResponse:
 class StudyEngine:
     """Silnik nauki - retrieval + tryby nauki + LLM."""
 
-    def __init__(self, retriever: Retriever, generator: Generator) -> None:
+    def __init__(
+        self,
+        retriever: Retriever,
+        generator: Generator,
+        store: QdrantStore | None = None,
+    ) -> None:
         self._retriever = retriever
         self._generator = generator
+        # store opcjonalny - potrzebny tylko do trybu "ścieżka nauki" (quiz po rozdziale).
+        # Stare wywołania (StudyEngine(retriever, generator)) dalej działają.
+        self._store = store
 
     def study(
         self,
@@ -91,6 +105,43 @@ class StudyEngine:
             sources=chunks,
             chapter=chapter,
         )
+
+    def quiz(
+        self,
+        collection: str,
+        chapter: str | None = None,
+        num_questions: int = 4,
+    ) -> list[dict]:
+        """Wygeneruj klikalne pytania ABCD dla rozdziału (lub całej kolekcji).
+
+        Materiał bierzemy bezpośrednio z rozdziału (read_chapter) - to "to,
+        co właśnie czytałeś". Jeśli store nie jest dostępny lub rozdział pusty,
+        spadamy do retrievera. Pusta lista = nie udało się wygenerować.
+        """
+        material = ""
+        if self._store is not None:
+            items = self._store.read_chapter(collection, chapter)
+            material = "\n\n".join(i["content"] for i in items)[:QUIZ_MATERIAL_LIMIT]
+
+        if not material:
+            chunks = self._retriever.retrieve(
+                query=chapter or "najważniejsze pojęcia",
+                collection=collection,
+                top_k=6,
+                chapter=chapter,
+            )
+            material = "\n\n".join(c.content for c in chunks)[:QUIZ_MATERIAL_LIMIT]
+
+        if not material:
+            return []
+
+        if not self._generator.is_available():
+            logger.warning("LLM niedostępny - nie mogę wygenerować quizu")
+            return []
+
+        messages = build_quiz_messages(material, num_questions)
+        raw = self._generator.generate(messages)
+        return parse_quiz_json(raw)
 
     @staticmethod
     def _build_fallback(
