@@ -168,3 +168,8 @@ class Generator(BaseGenerator):
 
     def is_available(self) -> bool:
         return self._impl.is_available()
+
+    @property
+    def model(self) -> str:
+        """Nazwa aktywnego modelu (deleguje do wybranej implementacji backendu)."""
+        return self._impl._model

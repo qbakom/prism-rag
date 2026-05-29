@@ -79,10 +79,10 @@ class RAGEngine:
             )
 
         answer = self._generator.generate(messages)
-        logger.info("Generated answer (%d chars) using %s", len(answer), self._generator._model)
+        logger.info("Generated answer (%d chars) using %s", len(answer), self._generator.model)
 
         return RAGResponse(
             answer=answer,
             sources=chunks,
-            model=self._generator._model,
+            model=self._generator.model,
         )

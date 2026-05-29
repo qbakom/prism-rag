@@ -28,6 +28,24 @@ from src.vectorstore.qdrant_store import QdrantStore
 TEST_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 
+@pytest.fixture(autouse=True)
+def _isolate_llm_backend(monkeypatch: pytest.MonkeyPatch):
+    """Odetnij testy od lokalnego .env dewelopera.
+
+    Bez tego Generator() czyta prawdziwy backend (np. gemini + klucz API),
+    przez co testy zakładające ollama/fallback są niedeterministyczne.
+    Wymuszamy backend=ollama (w testach i tak niedostępny -> fallback)
+    i czyścimy cache Settings, bo jest @lru_cache.
+    """
+    from src.config import get_settings
+
+    monkeypatch.setenv("LLM_BACKEND", "ollama")
+    monkeypatch.setenv("GOOGLE_API_KEY", "")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 @pytest.fixture(scope="session")
 def test_embedder() -> Embedder:
     """Embedder z małym modelem. scope=session = ładuje się RAZ na całą sesję testów."""
