@@ -1,6 +1,14 @@
 // Cienki klient HTTP do FastAPI. Adres backendu konfigurowalny przez
 // VITE_API_URL (domyślnie localhost:8000) - nic nie jest zahardkodowane na sztywno.
-import type { AskResult, Collection, QuizResult, ReadResult, Source, Topic } from "./types";
+import type {
+  AskResult,
+  Collection,
+  IngestResult,
+  QuizResult,
+  ReadResult,
+  Source,
+  Topic,
+} from "./types";
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -38,6 +46,19 @@ export const api = {
     p.catch(() => readCache.delete(key));
     readCache.set(key, p);
     return p;
+  },
+
+  // Wgraj PDF do podanej kolekcji (tworzy ją gdy nie istnieje).
+  // Multipart - własny fetch, bo `request` wymusza Content-Type: application/json.
+  upload: async (collection: string, file: File): Promise<IngestResult> => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("collection", collection);
+    const res = await fetch(`${BASE}/ingest/`, { method: "POST", body: fd });
+    if (!res.ok) {
+      throw new Error(`Upload ${res.status}: ${await res.text()}`);
+    }
+    return res.json() as Promise<IngestResult>;
   },
 
   // Wyczyść cache czytania (np. po ponownym imporcie materiałów).

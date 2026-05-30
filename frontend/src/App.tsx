@@ -20,6 +20,15 @@ export default function App() {
   const [askMode, setAskMode] = useState<AskMode>("ask");
   const [askResult, setAskResult] = useState<AskResult | null>(null);
   const [loadingAsk, setLoadingAsk] = useState(false);
+  // Uploader nowej/istniejącej tematyki.
+  const [uploaderOpen, setUploaderOpen] = useState(false);
+  const [uploaderMode, setUploaderMode] = useState<"new" | "current">("new");
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [fileStatus, setFileStatus] = useState<
+    Record<string, "pending" | "uploading" | "done" | "error">
+  >({});
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const topicIndex = activeTopic
@@ -116,6 +125,72 @@ export default function App() {
     }
   }
 
+  function slugifySubject(s: string): string {
+    return s
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function openNewSubjectUploader() {
+    setUploaderMode("new");
+    setNewSubjectName("");
+    setUploadFiles([]);
+    setFileStatus({});
+    setUploaderOpen(true);
+    setError("");
+  }
+
+  function openAddToCurrentUploader() {
+    if (!collection) return;
+    setUploaderMode("current");
+    setNewSubjectName(collection);
+    setUploadFiles([]);
+    setFileStatus({});
+    setUploaderOpen(true);
+    setError("");
+  }
+
+  async function doUpload() {
+    const target =
+      uploaderMode === "new" ? slugifySubject(newSubjectName) : collection;
+    if (!target) {
+      setError("Podaj nazwę tematyki.");
+      return;
+    }
+    if (!uploadFiles.length) {
+      setError("Wybierz przynajmniej jeden plik PDF.");
+      return;
+    }
+    setUploading(true);
+    setError("");
+    try {
+      for (const f of uploadFiles) {
+        setFileStatus((s) => ({ ...s, [f.name]: "uploading" }));
+        try {
+          await api.upload(target, f);
+          setFileStatus((s) => ({ ...s, [f.name]: "done" }));
+        } catch (e) {
+          setFileStatus((s) => ({ ...s, [f.name]: "error" }));
+          setError(`Nieudany upload ${f.name}: ${String(e)}`);
+        }
+      }
+      // Odśwież listę tematyk i przełącz na docelową (cache czytania też wyczyść).
+      const cs = await api.collections();
+      setCollections(cs);
+      api.clearReadCache(target);
+      if (target !== collection) setCollection(target);
+      // Zamknij panel jak nic się nie wywaliło.
+      const anyError = Object.values({ ...fileStatus }).includes("error");
+      if (!anyError) setUploaderOpen(false);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       {/* Pasek górny */}
@@ -125,23 +200,45 @@ export default function App() {
             <h1 className="text-xl font-bold text-indigo-700">PRISM</h1>
             <p className="text-sm text-slate-500">Nauka z książek — klikasz, nie piszesz</p>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500">Książka:</span>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-500">Tematyka:</span>
             <select
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
               value={collection}
               onChange={(e) => setCollection(e.target.value)}
             >
-              {collections.length === 0 && <option value="">(brak kolekcji)</option>}
+              {collections.length === 0 && <option value="">(brak tematyki)</option>}
               {collections.map((c) => (
                 <option key={c.name} value={c.name}>
                   {c.name} ({c.documents_count})
                 </option>
               ))}
             </select>
-          </label>
+            <button
+              onClick={openNewSubjectUploader}
+              className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+              title="Wgraj PDF-y do nowej tematyki (np. metody numeryczne)"
+            >
+              + Nowy temat
+            </button>
+          </div>
         </div>
       </header>
+
+      {uploaderOpen && (
+        <UploaderPanel
+          mode={uploaderMode}
+          name={newSubjectName}
+          setName={setNewSubjectName}
+          files={uploadFiles}
+          setFiles={setUploadFiles}
+          fileStatus={fileStatus}
+          uploading={uploading}
+          slug={uploaderMode === "new" ? slugifySubject(newSubjectName) : collection}
+          onCancel={() => setUploaderOpen(false)}
+          onSubmit={doUpload}
+        />
+      )}
 
       {error && (
         <div className="mx-auto mt-4 max-w-6xl px-6">
@@ -154,11 +251,36 @@ export default function App() {
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-6 md:grid-cols-[300px_1fr]">
         {/* Lewy panel: ścieżka nauki */}
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Ścieżka nauki
-          </h2>
-          {topics.length === 0 ? (
-            <p className="text-sm text-slate-400">Brak tematów — wgraj książkę do tej kolekcji.</p>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+              Ścieżka nauki
+            </h2>
+            {collection && (
+              <button
+                onClick={openAddToCurrentUploader}
+                className="text-xs font-medium text-indigo-600 hover:underline"
+                title={`Dodaj PDF do tematyki "${collection}"`}
+              >
+                + Dodaj PDF
+              </button>
+            )}
+          </div>
+          {!collection ? (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400">
+                Nie masz jeszcze żadnej tematyki.
+              </p>
+              <button
+                onClick={openNewSubjectUploader}
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+              >
+                + Stwórz pierwszą tematykę
+              </button>
+            </div>
+          ) : topics.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              Brak tematów — wgraj PDF do tej tematyki.
+            </p>
           ) : (
             <ol className="space-y-1">
               {topics.map((t, i) => {
@@ -297,6 +419,123 @@ export default function App() {
           )}
         </section>
       </main>
+    </div>
+  );
+}
+
+function UploaderPanel({
+  mode,
+  name,
+  setName,
+  files,
+  setFiles,
+  fileStatus,
+  uploading,
+  slug,
+  onCancel,
+  onSubmit,
+}: {
+  mode: "new" | "current";
+  name: string;
+  setName: (s: string) => void;
+  files: File[];
+  setFiles: (fs: File[]) => void;
+  fileStatus: Record<string, "pending" | "uploading" | "done" | "error">;
+  uploading: boolean;
+  slug: string;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="mx-auto mt-4 max-w-6xl px-6">
+      <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-indigo-800">
+            {mode === "new" ? "Nowa tematyka" : `Dodaj PDF → ${name}`}
+          </h2>
+          <button
+            onClick={onCancel}
+            disabled={uploading}
+            className="text-xs text-slate-500 hover:text-slate-700 disabled:opacity-40"
+          >
+            ✕ Zamknij
+          </button>
+        </div>
+
+        {mode === "new" && (
+          <div className="mb-3">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Nazwa tematyki (np. „metody numeryczne")
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={uploading}
+              placeholder="metody numeryczne"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none disabled:bg-slate-50"
+            />
+            {name.trim() && (
+              <p className="mt-1 text-xs text-slate-500">
+                Zapisana jako: <code className="font-mono text-indigo-700">{slug}</code>
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-medium text-slate-600">
+            Pliki PDF (możesz wybrać kilka)
+          </label>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            multiple
+            disabled={uploading}
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700 disabled:opacity-50"
+          />
+        </div>
+
+        {files.length > 0 && (
+          <ul className="mb-3 space-y-1">
+            {files.map((f) => {
+              const st = fileStatus[f.name];
+              const icon =
+                st === "done"
+                  ? "✅"
+                  : st === "error"
+                    ? "❌"
+                    : st === "uploading"
+                      ? "⏳"
+                      : "•";
+              return (
+                <li key={f.name} className="flex items-center gap-2 text-xs text-slate-600">
+                  <span>{icon}</span>
+                  <span className="truncate">{f.name}</span>
+                  <span className="text-slate-400">
+                    ({(f.size / 1024 / 1024).toFixed(1)} MB)
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onSubmit}
+            disabled={uploading || !files.length || (mode === "new" && !slug)}
+            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {uploading
+              ? "Wgrywam…"
+              : `Wgraj ${files.length || ""} ${files.length === 1 ? "plik" : "plików"} →`}
+          </button>
+          <p className="text-xs text-slate-500">
+            Wgranie i zaindeksowanie ~10 MB PDF zajmuje ~30-60s (chunking + embedding na GPU).
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

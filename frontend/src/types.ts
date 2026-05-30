@@ -41,3 +41,10 @@ export interface AskResult {
 }
 
 export type AskMode = "ask" | "explain" | "connect";
+
+export interface IngestResult {
+  filename: string;
+  collection: string;
+  chunks_created: number;
+  message: string;
+}
