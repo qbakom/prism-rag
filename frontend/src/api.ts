@@ -1,6 +1,6 @@
 // Cienki klient HTTP do FastAPI. Adres backendu konfigurowalny przez
 // VITE_API_URL (domyślnie localhost:8000) - nic nie jest zahardkodowane na sztywno.
-import type { Collection, QuizResult, ReadResult, Topic } from "./types";
+import type { AskResult, Collection, QuizResult, ReadResult, Source, Topic } from "./types";
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -53,4 +53,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  // Wolne pytanie o całą książkę (RAG): odpowiedź + cytowane źródła.
+  ask: (collection: string, question: string) =>
+    request<AskResult>("/query/", {
+      method: "POST",
+      body: JSON.stringify({ question, collection, top_k: 6 }),
+    }),
+
+  // Tryby nauki explain/connect zwracają {content, sources} - normalizujemy do AskResult.
+  study: async (
+    collection: string,
+    question: string,
+    mode: "explain" | "connect",
+    chapter: string | null,
+  ): Promise<AskResult> => {
+    const r = await request<{ content: string; sources: Source[] }>("/study/", {
+      method: "POST",
+      body: JSON.stringify({ question, collection, mode, chapter }),
+    });
+    return { answer: r.content, sources: r.sources };
+  },
 };

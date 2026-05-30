@@ -28,3 +28,16 @@ export interface QuizResult {
   chapter: string | null;
   questions: QuizQuestion[];
 }
+
+export interface Source {
+  filename: string;
+  page: number | null;
+  chunk_text: string;
+}
+
+export interface AskResult {
+  answer: string;
+  sources: Source[];
+}
+
+export type AskMode = "ask" | "explain" | "connect";

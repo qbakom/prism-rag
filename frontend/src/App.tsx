@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import type { Collection, QuizQuestion, Topic } from "./types";
+import { Markdown } from "./Markdown";
+import type { AskMode, AskResult, Collection, QuizQuestion, Source, Topic } from "./types";
 
 export default function App() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -11,7 +12,25 @@ export default function App() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
+  // Mapuje index pytania -> czy odpowiedź była poprawna. Pozwala policzyć wynik
+  // i pokazać domknięcie pętli nauki (wynik + przejście do kolejnego tematu).
+  const [answers, setAnswers] = useState<Record<number, boolean>>({});
+  // Panel "Zapytaj książkę" - wolne pytanie/wyjaśnienie/połączenie (niezależne od ścieżki).
+  const [askQ, setAskQ] = useState("");
+  const [askMode, setAskMode] = useState<AskMode>("ask");
+  const [askResult, setAskResult] = useState<AskResult | null>(null);
+  const [loadingAsk, setLoadingAsk] = useState(false);
   const [error, setError] = useState("");
+
+  const topicIndex = activeTopic
+    ? topics.findIndex((t) => t.title === activeTopic.title)
+    : -1;
+  const nextTopic =
+    topicIndex >= 0 && topicIndex < topics.length - 1 ? topics[topicIndex + 1] : null;
+
+  const total = quiz?.length ?? 0;
+  const score = Object.values(answers).filter(Boolean).length;
+  const allAnswered = total > 0 && Object.keys(answers).length === total;
 
   // Wczytaj kolekcje na starcie
   useEffect(() => {
@@ -31,6 +50,8 @@ export default function App() {
     setActiveTopic(null);
     setContent("");
     setQuiz(null);
+    setAnswers({});
+    setAskResult(null);
     setError("");
     api.topics(collection).then(setTopics).catch((e) => setError(String(e)));
   }, [collection]);
@@ -38,9 +59,11 @@ export default function App() {
   async function openTopic(t: Topic) {
     setActiveTopic(t);
     setQuiz(null);
+    setAnswers({});
     setContent("");
     setError("");
     setLoadingContent(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     try {
       const r = await api.read(collection, t.chapter);
       setContent(r.content.trim() || "(brak treści dla tego tematu)");
@@ -54,6 +77,7 @@ export default function App() {
   async function startQuiz() {
     if (!activeTopic) return;
     setError("");
+    setAnswers({});
     setLoadingQuiz(true);
     try {
       const r = await api.quiz({
@@ -69,6 +93,26 @@ export default function App() {
       setError(String(e));
     } finally {
       setLoadingQuiz(false);
+    }
+  }
+
+  async function runAsk() {
+    const question = askQ.trim();
+    if (!question || !collection) return;
+    setError("");
+    setAskResult(null);
+    setLoadingAsk(true);
+    try {
+      // explain/connect mogą być zawężone do otwartego tematu; "ask" = cała książka.
+      const r =
+        askMode === "ask"
+          ? await api.ask(collection, question)
+          : await api.study(collection, question, askMode, activeTopic?.chapter ?? null);
+      setAskResult(r);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoadingAsk(false);
     }
   }
 
@@ -145,8 +189,62 @@ export default function App() {
           )}
         </aside>
 
-        {/* Prawy panel: treść + quiz */}
+        {/* Prawy panel: zapytaj + treść + quiz */}
         <section className="space-y-6">
+          {/* Panel "Zapytaj książkę" - zawsze dostępny, niezależny od ścieżki */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h2 className="mr-1 text-sm font-semibold text-slate-700">Zapytaj książkę</h2>
+              {(
+                [
+                  ["ask", "Pytanie"],
+                  ["explain", "Wyjaśnij"],
+                  ["connect", "Połącz"],
+                ] as [AskMode, string][]
+              ).map(([m, label]) => (
+                <button
+                  key={m}
+                  onClick={() => setAskMode(m)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    askMode === m
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={askQ}
+                onChange={(e) => setAskQ(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runAsk()}
+                placeholder={
+                  askMode === "connect"
+                    ? "np. jak fairness łączy się z kalibracją?"
+                    : askMode === "explain"
+                      ? "np. wyjaśnij demographic parity"
+                      : "zapytaj o cokolwiek z tej książki…"
+                }
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              />
+              <button
+                onClick={runAsk}
+                disabled={loadingAsk || !askQ.trim()}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {loadingAsk ? "…" : "Zapytaj"}
+              </button>
+            </div>
+            {activeTopic && askMode !== "ask" && (
+              <p className="mt-2 text-xs text-slate-400">
+                Zawężone do tematu: {activeTopic.title}
+              </p>
+            )}
+            {askResult && <AnswerBlock result={askResult} />}
+          </div>
+
           {!activeTopic ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-400">
               Wybierz temat ze ścieżki po lewej, żeby zacząć.
@@ -174,8 +272,25 @@ export default function App() {
               {quiz && quiz.length > 0 && (
                 <div className="space-y-4">
                   {quiz.map((question, i) => (
-                    <QuizCard key={i} index={i} question={question} />
+                    <QuizCard
+                      key={i}
+                      index={i}
+                      question={question}
+                      onAnswer={(correct) =>
+                        setAnswers((a) => ({ ...a, [i]: correct }))
+                      }
+                    />
                   ))}
+
+                  {allAnswered && (
+                    <ResultCard
+                      score={score}
+                      total={total}
+                      nextTitle={nextTopic?.title ?? null}
+                      onNext={() => nextTopic && openTopic(nextTopic)}
+                      onRetry={startQuiz}
+                    />
+                  )}
                 </div>
               )}
             </>
@@ -186,9 +301,114 @@ export default function App() {
   );
 }
 
-function QuizCard({ index, question }: { index: number; question: QuizQuestion }) {
+function AnswerBlock({ result }: { result: AskResult }) {
+  const [showSources, setShowSources] = useState(false);
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-4">
+      <Markdown>{result.answer}</Markdown>
+      {result.sources.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowSources((s) => !s)}
+            className="text-xs font-medium text-indigo-600 hover:underline"
+          >
+            {showSources ? "Ukryj źródła" : `Źródła (${result.sources.length})`}
+          </button>
+          {showSources && (
+            <div className="mt-2 space-y-2">
+              {result.sources.map((s: Source, i: number) => (
+                <div
+                  key={i}
+                  className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                >
+                  <span className="font-semibold text-slate-500">
+                    {s.filename}
+                    {s.page != null ? `, s. ${s.page}` : ""}
+                  </span>
+                  <p className="mt-1 line-clamp-3">{s.chunk_text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultCard({
+  score,
+  total,
+  nextTitle,
+  onNext,
+  onRetry,
+}: {
+  score: number;
+  total: number;
+  nextTitle: string | null;
+  onNext: () => void;
+  onRetry: () => void;
+}) {
+  const pct = Math.round((score / total) * 100);
+  const { emoji, msg } =
+    pct === 100
+      ? { emoji: "🏆", msg: "Komplet! Masz ten temat opanowany." }
+      : pct >= 60
+        ? { emoji: "👍", msg: "Dobra robota — większość jasna." }
+        : { emoji: "📖", msg: "Warto wrócić do materiału i spróbować ponownie." };
+
+  return (
+    <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6">
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">{emoji}</span>
+        <div>
+          <p className="text-lg font-bold text-indigo-800">
+            Wynik: {score}/{total} ({pct}%)
+          </p>
+          <p className="text-sm text-indigo-700">{msg}</p>
+        </div>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        {nextTitle ? (
+          <button
+            onClick={onNext}
+            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Następny temat → <span className="opacity-80">{nextTitle}</span>
+          </button>
+        ) : (
+          <span className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-indigo-700">
+            🎉 To był ostatni temat w tej książce!
+          </span>
+        )}
+        <button
+          onClick={onRetry}
+          className="rounded-xl border border-indigo-300 bg-white px-5 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+        >
+          Jeszcze raz
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QuizCard({
+  index,
+  question,
+  onAnswer,
+}: {
+  index: number;
+  question: QuizQuestion;
+  onAnswer: (correct: boolean) => void;
+}) {
   const [picked, setPicked] = useState<number | null>(null);
   const answered = picked !== null;
+
+  function pick(i: number) {
+    if (answered) return;
+    setPicked(i);
+    onAnswer(i === question.correct_index);
+  }
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -208,7 +428,7 @@ function QuizCard({ index, question }: { index: number; question: QuizQuestion }
             <button
               key={i}
               disabled={answered}
-              onClick={() => setPicked(i)}
+              onClick={() => pick(i)}
               className={`flex w-full items-center gap-3 rounded-lg border px-4 py-2.5 text-left text-sm transition ${cls}`}
             >
               <span className="font-semibold text-slate-400">
@@ -222,9 +442,9 @@ function QuizCard({ index, question }: { index: number; question: QuizQuestion }
         })}
       </div>
       {answered && question.explanation && (
-        <p className="mt-3 rounded-lg bg-slate-50 px-4 py-2 text-sm text-slate-600">
-          {question.explanation}
-        </p>
+        <div className="mt-3 rounded-lg bg-slate-50 px-4 py-2">
+          <Markdown>{question.explanation}</Markdown>
+        </div>
       )}
     </div>
   );
