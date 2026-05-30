@@ -48,3 +48,8 @@ export interface IngestResult {
   chunks_created: number;
   message: string;
 }
+
+export interface FileInfo {
+  filename: string;
+  chunk_count: number;
+}

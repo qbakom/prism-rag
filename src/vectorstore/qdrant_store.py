@@ -238,3 +238,44 @@ class QdrantStore:
         """Ile punktów jest w kolekcji."""
         info = self._client.get_collection(collection_name=name)
         return info.points_count or 0
+
+    def list_files(self, collection: str) -> list[dict]:
+        """Lista plików (źródeł) w kolekcji z liczbą fragmentów każdego.
+
+        Grupuje punkty po `filename` - to podstawa panelu zarządzania materiałami:
+        widać z czego zbudowana jest tematyka i co można usunąć.
+        """
+        if collection not in self.list_collections():
+            return []
+
+        files: dict[str, int] = {}
+        for rec in self._scroll_all(collection):
+            fn = (rec.payload or {}).get("filename", "unknown")
+            files[fn] = files.get(fn, 0) + 1
+
+        return sorted(
+            ({"filename": fn, "chunk_count": n} for fn, n in files.items()),
+            key=lambda f: f["filename"],
+        )
+
+    def delete_file(self, collection: str, filename: str) -> int:
+        """Usuń wszystkie fragmenty danego pliku z kolekcji. Zwraca ile usunięto."""
+        if collection not in self.list_collections():
+            return 0
+
+        flt = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="filename",
+                    match=models.MatchValue(value=filename),
+                )
+            ]
+        )
+        # Policz przed usunięciem (Qdrant delete nie zwraca liczby).
+        before = len(self._scroll_all(collection, flt))
+        self._client.delete(
+            collection_name=collection,
+            points_selector=models.FilterSelector(filter=flt),
+        )
+        logger.info("Deleted %d points (file='%s') from '%s'", before, filename, collection)
+        return before

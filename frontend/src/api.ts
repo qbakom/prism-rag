@@ -3,6 +3,7 @@
 import type {
   AskResult,
   Collection,
+  FileInfo,
   IngestResult,
   QuizResult,
   ReadResult,
@@ -31,6 +32,18 @@ const readCache = new Map<string, Promise<ReadResult>>();
 
 export const api = {
   collections: () => request<Collection[]>("/collections/"),
+
+  files: (collection: string) =>
+    request<FileInfo[]>(`/collections/${q(collection)}/files`),
+
+  deleteFile: (collection: string, filename: string) =>
+    request<{ message: string; deleted: number }>(
+      `/collections/${q(collection)}/files?filename=${q(filename)}`,
+      { method: "DELETE" },
+    ),
+
+  deleteCollection: (collection: string) =>
+    request<{ message: string }>(`/collections/${q(collection)}`, { method: "DELETE" }),
 
   topics: (collection: string) =>
     request<Topic[]>(`/study/topics?collection=${q(collection)}`),

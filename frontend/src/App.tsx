@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import { Markdown } from "./Markdown";
-import type { AskMode, AskResult, Collection, QuizQuestion, Source, Topic } from "./types";
+import type { AskMode, AskResult, Collection, FileInfo, QuizQuestion, Source, Topic } from "./types";
 
 export default function App() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -29,6 +29,10 @@ export default function App() {
     Record<string, "pending" | "uploading" | "done" | "error">
   >({});
   const [uploading, setUploading] = useState(false);
+  // Panel zarządzania materiałami (pliki w tematyce).
+  const [manageOpen, setManageOpen] = useState(false);
+  const [managedFiles, setManagedFiles] = useState<FileInfo[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
   const [error, setError] = useState("");
 
   const topicIndex = activeTopic
@@ -167,27 +171,68 @@ export default function App() {
     }
     setUploading(true);
     setError("");
+    let hadError = false;
     try {
-      for (const f of uploadFiles) {
+      for (let i = 0; i < uploadFiles.length; i++) {
+        const f = uploadFiles[i];
         setFileStatus((s) => ({ ...s, [f.name]: "uploading" }));
         try {
           await api.upload(target, f);
           setFileStatus((s) => ({ ...s, [f.name]: "done" }));
         } catch (e) {
+          hadError = true;
           setFileStatus((s) => ({ ...s, [f.name]: "error" }));
           setError(`Nieudany upload ${f.name}: ${String(e)}`);
         }
       }
-      // Odśwież listę tematyk i przełącz na docelową (cache czytania też wyczyść).
       const cs = await api.collections();
       setCollections(cs);
       api.clearReadCache(target);
       if (target !== collection) setCollection(target);
-      // Zamknij panel jak nic się nie wywaliło.
-      const anyError = Object.values({ ...fileStatus }).includes("error");
-      if (!anyError) setUploaderOpen(false);
+      if (!hadError) setUploaderOpen(false);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function openManagePanel() {
+    if (!collection) return;
+    setManageOpen(true);
+    setLoadingFiles(true);
+    try {
+      setManagedFiles(await api.files(collection));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoadingFiles(false);
+    }
+  }
+
+  async function handleDeleteFile(filename: string) {
+    if (!collection) return;
+    try {
+      await api.deleteFile(collection, filename);
+      setManagedFiles((fs) => fs.filter((f) => f.filename !== filename));
+      api.clearReadCache(collection);
+      const cs = await api.collections();
+      setCollections(cs);
+      api.topics(collection).then(setTopics);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function handleDeleteCollection() {
+    if (!collection) return;
+    try {
+      await api.deleteCollection(collection);
+      setManageOpen(false);
+      api.clearReadCache(collection);
+      const cs = await api.collections();
+      setCollections(cs);
+      setCollection(cs.length > 0 ? cs[0].name : "");
+    } catch (e) {
+      setError(String(e));
     }
   }
 
@@ -221,9 +266,33 @@ export default function App() {
             >
               + Nowy temat
             </button>
+            {collection && (
+              <button
+                onClick={openManagePanel}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+                title={`Zarządzaj plikami w „${collection}"`}
+              >
+                Zarządzaj
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {manageOpen && !uploaderOpen && (
+        <ManagePanel
+          collection={collection}
+          files={managedFiles}
+          loading={loadingFiles}
+          onDeleteFile={handleDeleteFile}
+          onDeleteCollection={handleDeleteCollection}
+          onAddFiles={() => {
+            setManageOpen(false);
+            openAddToCurrentUploader();
+          }}
+          onClose={() => setManageOpen(false)}
+        />
+      )}
 
       {uploaderOpen && (
         <UploaderPanel
@@ -423,6 +492,134 @@ export default function App() {
   );
 }
 
+function ManagePanel({
+  collection,
+  files,
+  loading,
+  onDeleteFile,
+  onDeleteCollection,
+  onAddFiles,
+  onClose,
+}: {
+  collection: string;
+  files: FileInfo[];
+  loading: boolean;
+  onDeleteFile: (filename: string) => void;
+  onDeleteCollection: () => void;
+  onAddFiles: () => void;
+  onClose: () => void;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+
+  const totalChunks = files.reduce((s, f) => s + f.chunk_count, 0);
+
+  return (
+    <div className="mx-auto mt-4 max-w-6xl px-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-800">
+            Materiały w „{collection}" ({totalChunks} fragmentów)
+          </h2>
+          <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-700">
+            ✕ Zamknij
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-slate-400">Ładowanie listy plików…</p>
+        ) : files.length === 0 ? (
+          <p className="text-sm text-slate-400">Brak plików — wgraj pierwszy PDF.</p>
+        ) : (
+          <div className="mb-4 rounded-lg border border-slate-100">
+            <div className="border-b border-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">
+              {files.length} {files.length === 1 ? "plik" : "plików"}
+            </div>
+            <ul className="max-h-64 divide-y divide-slate-100 overflow-y-auto">
+              {files.map((f) => (
+                <li
+                  key={f.filename}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700"
+                >
+                  <span className="flex-1 truncate" title={f.filename}>
+                    {f.filename}
+                  </span>
+                  <span className="shrink-0 text-xs text-slate-400">
+                    {f.chunk_count} fragmentów
+                  </span>
+                  {confirmDelete === f.filename ? (
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span className="text-xs text-red-600">Na pewno?</span>
+                      <button
+                        onClick={() => {
+                          onDeleteFile(f.filename);
+                          setConfirmDelete(null);
+                        }}
+                        className="rounded bg-red-600 px-2 py-0.5 text-xs text-white hover:bg-red-700"
+                      >
+                        Tak
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="text-xs text-slate-400 hover:text-slate-700"
+                      >
+                        Nie
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(f.filename)}
+                      className="shrink-0 text-xs text-red-400 hover:text-red-600"
+                    >
+                      Usuń
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={onAddFiles}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            + Dodaj PDF
+          </button>
+          {confirmDeleteAll ? (
+            <span className="flex items-center gap-2">
+              <span className="text-xs text-red-600">Usunąć całą tematykę „{collection}"?</span>
+              <button
+                onClick={() => {
+                  onDeleteCollection();
+                  setConfirmDeleteAll(false);
+                }}
+                className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+              >
+                Tak, usuń
+              </button>
+              <button
+                onClick={() => setConfirmDeleteAll(false)}
+                className="text-xs text-slate-400 hover:text-slate-700"
+              >
+                Anuluj
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setConfirmDeleteAll(true)}
+              className="text-xs text-red-400 hover:text-red-600"
+            >
+              Usuń całą tematykę
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UploaderPanel({
   mode,
   name,
@@ -446,6 +643,27 @@ function UploaderPanel({
   onCancel: () => void;
   onSubmit: () => void;
 }) {
+  const [dragOver, setDragOver] = useState(false);
+
+  // Klucz dedup = name+size (te same nazwy z różnych folderów się nie zlewają).
+  const fileKey = (f: File) => `${f.name}:${f.size}`;
+
+  function addFiles(incoming: File[]) {
+    // Filtruj tylko PDF, dedup z aktualną listą.
+    const pdfs = incoming.filter(
+      (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"),
+    );
+    const existing = new Set(files.map(fileKey));
+    const additions = pdfs.filter((f) => !existing.has(fileKey(f)));
+    if (additions.length) setFiles([...files, ...additions]);
+  }
+
+  function removeFile(key: string) {
+    setFiles(files.filter((f) => fileKey(f) !== key));
+  }
+
+  const totalMB = files.reduce((s, f) => s + f.size, 0) / 1024 / 1024;
+
   return (
     <div className="mx-auto mt-4 max-w-6xl px-6">
       <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5">
@@ -484,56 +702,143 @@ function UploaderPanel({
 
         <div className="mb-3">
           <label className="mb-1 block text-xs font-medium text-slate-600">
-            Pliki PDF (możesz wybrać kilka)
+            Pliki PDF — możesz wybrać kilka, dorzucać partiami albo przeciągnąć tutaj
           </label>
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            multiple
-            disabled={uploading}
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-            className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700 disabled:opacity-50"
-          />
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!uploading) setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              if (uploading) return;
+              addFiles(Array.from(e.dataTransfer.files));
+            }}
+            className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+              dragOver
+                ? "border-indigo-500 bg-indigo-100"
+                : "border-slate-300 bg-white hover:border-indigo-400 hover:bg-indigo-50/40"
+            } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+          >
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              multiple
+              disabled={uploading}
+              onChange={(e) => {
+                addFiles(Array.from(e.target.files ?? []));
+                // Reset, żeby ponowny wybór tego samego pliku też triggerował onChange.
+                e.target.value = "";
+              }}
+              className="hidden"
+            />
+            <div className="text-3xl">📄</div>
+            <div className="mt-1 text-sm font-semibold text-indigo-700">
+              {files.length === 0
+                ? "Kliknij lub przeciągnij PDF-y"
+                : `Dorzuć więcej (masz ${files.length})`}
+            </div>
+            <div className="text-xs text-slate-500">
+              Wybór sumuje się — możesz klikać kilka razy
+            </div>
+          </label>
         </div>
 
         {files.length > 0 && (
-          <ul className="mb-3 space-y-1">
-            {files.map((f) => {
-              const st = fileStatus[f.name];
-              const icon =
-                st === "done"
-                  ? "✅"
-                  : st === "error"
-                    ? "❌"
-                    : st === "uploading"
-                      ? "⏳"
-                      : "•";
-              return (
-                <li key={f.name} className="flex items-center gap-2 text-xs text-slate-600">
-                  <span>{icon}</span>
-                  <span className="truncate">{f.name}</span>
-                  <span className="text-slate-400">
-                    ({(f.size / 1024 / 1024).toFixed(1)} MB)
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="mb-3 rounded-lg border border-slate-200 bg-white">
+            <div className="flex items-center justify-between border-b border-slate-100 px-3 py-1.5 text-xs">
+              <span className="font-semibold text-slate-600">
+                {files.length} {files.length === 1 ? "plik" : "plików"} · {totalMB.toFixed(1)} MB
+              </span>
+              {!uploading && (
+                <button
+                  onClick={() => setFiles([])}
+                  className="text-slate-400 hover:text-red-600"
+                >
+                  Wyczyść
+                </button>
+              )}
+            </div>
+            <ul className="max-h-48 divide-y divide-slate-100 overflow-y-auto">
+              {files.map((f) => {
+                const k = fileKey(f);
+                const st = fileStatus[f.name];
+                const icon =
+                  st === "done"
+                    ? "✅"
+                    : st === "error"
+                      ? "❌"
+                      : st === "uploading"
+                        ? "⏳"
+                        : "•";
+                return (
+                  <li
+                    key={k}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-600"
+                  >
+                    <span className="w-4 text-center">{icon}</span>
+                    <span className="flex-1 truncate" title={f.name}>
+                      {f.name}
+                    </span>
+                    <span className="shrink-0 text-slate-400">
+                      {(f.size / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                    {!uploading && st !== "done" && (
+                      <button
+                        onClick={() => removeFile(k)}
+                        className="shrink-0 text-slate-300 hover:text-red-600"
+                        title="Usuń z listy"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {uploading && (
+          <div className="mb-3 flex items-center gap-3 rounded-lg bg-indigo-100 px-4 py-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+            <div className="text-sm">
+              <span className="font-semibold text-indigo-800">
+                Wgrywam {Object.values(fileStatus).filter((s) => s === "done").length + 1} / {files.length}
+              </span>
+              <span className="ml-2 text-indigo-600">
+                {files.find((f) => fileStatus[f.name] === "uploading")?.name ?? ""}
+              </span>
+              <p className="mt-0.5 text-xs text-indigo-500">
+                Chunking + embedding — duży PDF może trwać 1-2 min. Nie zamykaj strony.
+              </p>
+            </div>
+          </div>
         )}
 
         <div className="flex items-center gap-3">
           <button
             onClick={onSubmit}
             disabled={uploading || !files.length || (mode === "new" && !slug)}
-            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+            className={`rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 ${
+              !uploading && files.length > 0
+                ? "animate-pulse bg-indigo-600 hover:bg-indigo-700"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
           >
             {uploading
               ? "Wgrywam…"
-              : `Wgraj ${files.length || ""} ${files.length === 1 ? "plik" : "plików"} →`}
+              : files.length > 0
+                ? `Wgraj ${files.length} ${files.length === 1 ? "plik" : "plików"} →`
+                : "Wybierz pliki PDF"}
           </button>
-          <p className="text-xs text-slate-500">
-            Wgranie i zaindeksowanie ~10 MB PDF zajmuje ~30-60s (chunking + embedding na GPU).
-          </p>
+          {!uploading && files.length > 0 && (
+            <p className="text-xs font-medium text-indigo-600">
+              ← Kliknij żeby rozpocząć wgrywanie
+            </p>
+          )}
         </div>
       </div>
     </div>
