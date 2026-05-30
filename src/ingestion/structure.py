@@ -122,19 +122,49 @@ def _enrich_from_toc(
     return enriched
 
 
+def _enrich_by_page_ranges(
+    documents: list[Document], target_segments: int = 15
+) -> list[Document]:
+    """Ostateczny fallback: podziel książkę na segmenty po zakresach stron.
+
+    Gdy PDF nie ma ani TOC, ani jawnych nagłówków „Rozdział N", to jedyny
+    sposób na czytelną, nawigowalną ścieżkę — zamiast jednego worka „Bez rozdziału".
+    Segmenty są uczciwie nazwane „Strony X–Y" (nie udają rozdziałów semantycznych).
+    """
+    if not documents:
+        return documents
+
+    pages = [d.metadata.get("page_number", 0) for d in documents]
+    min_p, max_p = min(pages), max(pages)
+    span = max(max_p - min_p + 1, 1)
+    seg_size = max(span // target_segments, 5)  # min 5 stron na segment
+
+    enriched: list[Document] = []
+    for doc in documents:
+        p = doc.metadata.get("page_number", min_p)
+        idx = (p - min_p) // seg_size
+        start = min_p + idx * seg_size
+        end = min(start + seg_size - 1, max_p)
+        md = {**doc.metadata}
+        md["chapter"] = str(idx + 1)
+        md["chapter_title"] = f"Strony {start}–{end}"
+        enriched.append(Document(content=doc.content, metadata=md))
+    return enriched
+
+
 def enrich_with_structure(
     documents: list[Document], *, toc: list[list] | None = None
 ) -> list[Document]:
     """Dodaj metadane chapter/section do dokumentów.
 
-    Preferuje TOC z PDF-a (dokładne). Jeśli brak — fallback na heurystykę regex.
+    Kolejność: TOC PDF-a (najlepsze) → jawne nagłówki regex → segmenty po stronach.
     """
     if toc:
         toc_chapters = _parse_toc(toc)
         if toc_chapters:
             return _enrich_from_toc(documents, toc_chapters)
 
-    # Fallback: heurystyka regex.
+    # Heurystyka regex (jawne „Rozdział N" / „Chapter N").
     current_chapter: str = ""
     current_chapter_title: str = ""
     current_section: str = ""
@@ -164,5 +194,10 @@ def enrich_with_structure(
             new_metadata["section_title"] = current_section_title
 
         enriched.append(Document(content=doc.content, metadata=new_metadata))
+
+    # Jeśli heurystyka nie znalazła ŻADNEGO jawnego rozdziału — segmenty po stronach.
+    detected = {d.metadata.get("chapter") for d in enriched if d.metadata.get("chapter")}
+    if not detected:
+        return _enrich_by_page_ranges(documents)
 
     return enriched
