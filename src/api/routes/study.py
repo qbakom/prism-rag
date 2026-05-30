@@ -20,6 +20,7 @@ from src.api.models.study import (
 )
 from src.api.models.study import StudyResponse as StudyResponseModel
 from src.study.engine import StudyEngine
+from src.study.text import stitch_overlapping
 from src.vectorstore.qdrant_store import QdrantStore
 
 router = APIRouter(prefix="/study", tags=["study"])
@@ -72,7 +73,7 @@ async def read_topic(
 ) -> ReadResponse:
     """Materiał do przeczytania dla tematu - ciągły tekst w kolejności czytania."""
     items = store.read_chapter(collection, chapter)
-    content = "\n\n".join(i["content"] for i in items)
+    content = stitch_overlapping([i["content"] for i in items])
     filename = items[0]["filename"] if items else None
     return ReadResponse(chapter=chapter, content=content, filename=filename)
 

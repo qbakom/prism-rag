@@ -15,6 +15,7 @@ from src.rag.generator import Generator
 from src.rag.retriever import RetrievedChunk, Retriever
 from src.study.modes import StudyMode, build_study_messages
 from src.study.quiz import build_quiz_messages, parse_quiz_json
+from src.study.text import stitch_overlapping
 from src.vectorstore.qdrant_store import QdrantStore
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,11 @@ logger = logging.getLogger(__name__)
 # Limit materiału wstrzykiwanego do LLM przy generowaniu quizu (znaki).
 # Chroni przed przekroczeniem okna kontekstowego na dużych rozdziałach.
 QUIZ_MATERIAL_LIMIT = 6000
+
+# Ile razy ponawiamy generowanie quizu, gdy LLM zwróci niepoprawny JSON.
+# Modele lokalne (Ollama) bywają niedeterministyczne - przy temperaturze >0
+# kolejna próba zwykle trafia w format.
+QUIZ_MAX_ATTEMPTS = 3
 
 
 @dataclass
@@ -121,7 +127,7 @@ class StudyEngine:
         material = ""
         if self._store is not None:
             items = self._store.read_chapter(collection, chapter)
-            material = "\n\n".join(i["content"] for i in items)[:QUIZ_MATERIAL_LIMIT]
+            material = stitch_overlapping([i["content"] for i in items])[:QUIZ_MATERIAL_LIMIT]
 
         if not material:
             chunks = self._retriever.retrieve(
@@ -130,7 +136,7 @@ class StudyEngine:
                 top_k=6,
                 chapter=chapter,
             )
-            material = "\n\n".join(c.content for c in chunks)[:QUIZ_MATERIAL_LIMIT]
+            material = stitch_overlapping([c.content for c in chunks])[:QUIZ_MATERIAL_LIMIT]
 
         if not material:
             return []
@@ -140,8 +146,22 @@ class StudyEngine:
             return []
 
         messages = build_quiz_messages(material, num_questions)
-        raw = self._generator.generate(messages)
-        return parse_quiz_json(raw)
+        # LLM bywa niedeterministyczny w formacie JSON - ponawiamy kilka razy
+        # zanim się poddamy. Pusta lista z parsera = format był zły.
+        for attempt in range(1, QUIZ_MAX_ATTEMPTS + 1):
+            raw = self._generator.generate(messages)
+            questions = parse_quiz_json(raw)
+            if questions:
+                return questions
+            logger.warning(
+                "Quiz: niepoprawny JSON (próba %d/%d)", attempt, QUIZ_MAX_ATTEMPTS
+            )
+
+        logger.error(
+            "Quiz: nie udało się wygenerować poprawnego JSON po %d próbach",
+            QUIZ_MAX_ATTEMPTS,
+        )
+        return []
 
     @staticmethod
     def _build_fallback(

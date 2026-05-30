@@ -17,6 +17,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 const q = (v: string) => encodeURIComponent(v);
 
+// Treść rozdziału jest niezmienna w obrębie kolekcji - cache'ujemy w pamięci,
+// żeby powrót do raz przeczytanego rozdziału nie wołał backendu ponownie.
+const readCache = new Map<string, Promise<ReadResult>>();
+
 export const api = {
   collections: () => request<Collection[]>("/collections/"),
 
@@ -24,8 +28,24 @@ export const api = {
     request<Topic[]>(`/study/topics?collection=${q(collection)}`),
 
   read: (collection: string, chapter: string | null) => {
+    const key = `${collection}||${chapter ?? ""}`;
+    const cached = readCache.get(key);
+    if (cached) return cached;
+
     const ch = chapter ? `&chapter=${q(chapter)}` : "";
-    return request<ReadResult>(`/study/read?collection=${q(collection)}${ch}`);
+    const p = request<ReadResult>(`/study/read?collection=${q(collection)}${ch}`);
+    // Odrzuconej obietnicy nie trzymamy w cache - błąd ma być ponawialny.
+    p.catch(() => readCache.delete(key));
+    readCache.set(key, p);
+    return p;
+  },
+
+  // Wyczyść cache czytania (np. po ponownym imporcie materiałów).
+  clearReadCache: (collection?: string) => {
+    if (!collection) return readCache.clear();
+    for (const key of readCache.keys()) {
+      if (key.startsWith(`${collection}||`)) readCache.delete(key);
+    }
   },
 
   quiz: (body: { collection: string; chapter: string | null; num_questions: number }) =>
