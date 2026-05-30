@@ -1,1 +1,122 @@
-<svg width="799pt" height="623pt"\n viewBox="0.00 0.00 798.75 622.75" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 618.75)">\n<title>ERD</title>\n<polygon fill="#1a1a1a" stroke="none" points="-4,4 -4,-618.75 794.75,-618.75 794.75,4 -4,4"/>\n<text text-anchor="middle" x="395.38" y="-593.65" font-family="Times,serif" font-size="18.00" fill="#d3d1c7">PRISM — model danych progresu (Stage 3/5) &#160;· &#160;localStorage najpierw, potem SQLite</text>\n<!-- book -->\n<g id="node1" class="node">\n<title>book</title>\n<polygon fill="#085041" stroke="none" points="24.75,-248.5 24.75,-336.5 257.75,-336.5 257.75,-248.5 24.75,-248.5"/>\n<polygon fill="#074538" stroke="none" points="25.75,-307.5 25.75,-335.5 256.75,-335.5 256.75,-307.5 25.75,-307.5"/>\n<text text-anchor="start" x="31.38" y="-318.15" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#9fe1cb">collection (książka, w Qdrant)</text>\n<text text-anchor="start" x="31.75" y="-288.2" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#5dcaa5">*name</text>\n<text text-anchor="start" x="180.75" y="-288.2" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#9fe1cb">TEXT pk</text>\n<text text-anchor="start" x="31.75" y="-259.2" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#5dcaa5">documents_count</text>\n<text text-anchor="start" x="180.75" y="-259.2" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#9fe1cb">INT</text>\n<polygon fill="none" stroke="#5dcaa5" points="24.75,-248.5 24.75,-336.5 257.75,-336.5 257.75,-248.5 24.75,-248.5"/>\n</g>\n<!-- topic -->\n<g id="node2" class="node">\n<title>topic</title>\n<polygon fill="#0c447c" stroke="none" points="327,-234 327,-351 478,-351 478,-234 327,-234"/>\n<polygon fill="#0a3a6b" stroke="none" points="328,-322 328,-350 477,-350 477,-322 328,-322"/>\n<text text-anchor="start" x="333.88" y="-332.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#b5d4f4">topic (z list_topics)</text>\n<text text-anchor="start" x="334" y="-302.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#85b7eb">+collection</text>\n<text text-anchor="start" x="430" y="-302.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#b5d4f4">TEXT</text>\n<text text-anchor="start" x="334" y="-273.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#85b7eb">*chapter</text>\n<text text-anchor="start" x="430" y="-273.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#b5d4f4">TEXT</text>\n<text text-anchor="start" x="334" y="-244.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#85b7eb">title</text>\n<text text-anchor="start" x="430" y="-244.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#b5d4f4">TEXT</text>\n<polygon fill="none" stroke="#85b7eb" points="327,-234 327,-351 478,-351 478,-234 327,-234"/>\n</g>\n<!-- book&#45;&gt;topic -->\n<g id="edge1" class="edge">\n<title>book&#45;&gt;topic</title>\n<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M265.42,-292.5C279.71,-292.5 294.11,-292.5 307.91,-292.5"/>\n<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="307.53,-296 317.53,-292.5 307.53,-289 307.53,-296"/>\n<text text-anchor="middle" x="292.38" y="-295.75" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..*</text>\n</g>\n<!-- reading -->\n<g id="node3" class="node">\n<title>reading</title>\n<polygon fill="#3c3489" stroke="none" points="561,-406 561,-581 753,-581 753,-406 561,-406"/>\n<polygon fill="#332d77" stroke="none" points="562,-552 562,-580 752,-580 752,-552 562,-552"/>\n<text text-anchor="start" x="593.25" y="-562.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#cecbf6">reading_progress</text>\n<text text-anchor="start" x="568" y="-532.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">*id</text>\n<text text-anchor="start" x="662" y="-532.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">pk</text>\n<text text-anchor="start" x="568" y="-503.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">+collection</text>\n<text text-anchor="start" x="662" y="-503.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">TEXT</text>\n<text text-anchor="start" x="568" y="-474.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">+chapter</text>\n<text text-anchor="start" x="662" y="-474.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">TEXT</text>\n<text text-anchor="start" x="568" y="-445.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">status</text>\n<text text-anchor="start" x="662" y="-445.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">read|unread</text>\n<text text-anchor="start" x="567.75" y="-416.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">last_read_at</text>\n<text text-anchor="start" x="662" y="-416.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">TS</text>\n<polygon fill="none" stroke="#afa9ec" points="561,-406 561,-581 753,-581 753,-406 561,-406"/>\n</g>\n<!-- topic&#45;&gt;reading -->\n<g id="edge2" class="edge">\n<title>topic&#45;&gt;reading</title>\n<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M482.01,-355C501.77,-370.73 523.36,-387.91 544.4,-404.66"/>\n<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="541.95,-407.19 551.96,-410.68 546.31,-401.71 541.95,-407.19"/>\n<text text-anchor="middle" x="513" y="-383.75" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..1</text>\n</g>\n<!-- attempt -->\n<g id="node4" class="node">\n<title>attempt</title>\n<polygon fill="#633806" stroke="none" points="586.5,-205 586.5,-380 727.5,-380 727.5,-205 586.5,-205"/>\n<polygon fill="#5a3205" stroke="none" points="587.5,-351 587.5,-379 726.5,-379 726.5,-351 587.5,-351"/>\n<text text-anchor="start" x="609.38" y="-361.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#fac775">quiz_attempt</text>\n<text text-anchor="start" x="593.5" y="-331.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">*id</text>\n<text text-anchor="start" x="686.5" y="-331.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">pk</text>\n<text text-anchor="start" x="593.5" y="-302.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">+collection</text>\n<text text-anchor="start" x="686.25" y="-302.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">TEXT</text>\n<text text-anchor="start" x="593.5" y="-273.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">+chapter</text>\n<text text-anchor="start" x="686.25" y="-273.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">TEXT</text>\n<text text-anchor="start" x="593.5" y="-244.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">score / total</text>\n<text text-anchor="start" x="686.5" y="-244.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">INT</text>\n<text text-anchor="start" x="593.5" y="-215.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">taken_at</text>\n<text text-anchor="start" x="686.5" y="-215.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">TS</text>\n<polygon fill="none" stroke="#ef9f27" points="586.5,-205 586.5,-380 727.5,-380 727.5,-205 586.5,-205"/>\n</g>\n<!-- topic&#45;&gt;attempt -->\n<g id="edge3" class="edge">\n<title>topic&#45;&gt;attempt</title>\n<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M485.83,-292.5C511.9,-292.5 540.84,-292.5 567.34,-292.5"/>\n<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="567.11,-296 577.11,-292.5 567.11,-289 567.11,-296"/>\n<text text-anchor="middle" x="513" y="-295.75" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..*</text>\n</g>\n<!-- fsrs -->\n<g id="node5" class="node">\n<title>fsrs</title>\n<polygon fill="#712b13" stroke="none" points="548,-4 548,-179 766,-179 766,-4 548,-4"/>\n<polygon fill="#5f230f" stroke="none" points="549,-150 549,-178 765,-178 765,-150 549,-150"/>\n<text text-anchor="start" x="587.62" y="-160.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#f5c4b3">fsrs_card (Stage 5)</text>\n<text text-anchor="start" x="555" y="-130.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">*id</text>\n<text text-anchor="start" x="723" y="-130.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">pk</text>\n<text text-anchor="start" x="555" y="-101.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">+collection / +chapter</text>\n<text text-anchor="start" x="723" y="-101.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">TEXT</text>\n<text text-anchor="start" x="555" y="-72.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">due</text>\n<text text-anchor="start" x="723" y="-72.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">TS</text>\n<text text-anchor="start" x="555" y="-43.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">stability / difficulty</text>\n<text text-anchor="start" x="723" y="-43.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">REAL</text>\n<text text-anchor="start" x="555" y="-14.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">reps / lapses / state</text>\n<text text-anchor="start" x="723" y="-14.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">INT</text>\n<polygon fill="none" stroke="#f0997b" points="548,-4 548,-179 766,-179 766,-4 548,-4"/>\n</g>\n<!-- topic&#45;&gt;fsrs -->\n<g id="edge4" class="edge">\n<title>topic&#45;&gt;fsrs</title>\n<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M482.01,-230C498.03,-217.25 515.27,-203.53 532.43,-189.87"/>\n<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="534.33,-192.83 539.97,-183.86 529.97,-187.35 534.33,-192.83"/>\n<text text-anchor="middle" x="513" y="-212.75" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..*</text>\n</g>\n</g>\n</svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.5 (0)
+ -->
+<!-- Title: ERD Pages: 1 -->
+<svg width="688pt" height="601pt"
+ viewBox="0.00 0.00 688.00 601.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 596.75)">
+<title>ERD</title>
+<polygon fill="#1a1a1a" stroke="none" points="-4,4 -4,-596.75 684.25,-596.75 684.25,4 -4,4"/>
+<text xml:space="preserve" text-anchor="middle" x="340.12" y="-571.65" font-family="Times,serif" font-size="18.00" fill="#d3d1c7">PRISM — model danych progresu (Stage 3/5) &#160;· &#160;localStorage najpierw, potem SQLite</text>
+<!-- book -->
+<g id="node1" class="node">
+<title>book</title>
+<polygon fill="#085041" stroke="none" points="8,-239.62 8,-324.12 210.25,-324.12 210.25,-239.62 8,-239.62"/>
+<polygon fill="#074538" stroke="none" points="9,-296.12 9,-323.12 209.25,-323.12 209.25,-296.12 9,-296.12"/>
+<text xml:space="preserve" text-anchor="start" x="15" y="-305.77" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#9fe1cb">collection (książka, w Qdrant)</text>
+<text xml:space="preserve" text-anchor="start" x="15" y="-277.38" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#5dcaa5">*name</text>
+<text xml:space="preserve" text-anchor="start" x="142.5" y="-277.38" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#9fe1cb">TEXT pk</text>
+<text xml:space="preserve" text-anchor="start" x="15" y="-249.62" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#5dcaa5">documents_count</text>
+<text xml:space="preserve" text-anchor="start" x="142.5" y="-249.62" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#9fe1cb">INT</text>
+<polygon fill="none" stroke="#5dcaa5" points="8,-239.62 8,-324.12 210.25,-324.12 210.25,-239.62 8,-239.62"/>
+</g>
+<!-- topic -->
+<g id="node2" class="node">
+<title>topic</title>
+<polygon fill="#0c447c" stroke="none" points="277.25,-225.75 277.25,-338 413.5,-338 413.5,-225.75 277.25,-225.75"/>
+<polygon fill="#0a3a6b" stroke="none" points="278.25,-310 278.25,-337 412.5,-337 412.5,-310 278.25,-310"/>
+<text xml:space="preserve" text-anchor="start" x="284.25" y="-319.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#b5d4f4">topic (z list_topics)</text>
+<text xml:space="preserve" text-anchor="start" x="284.25" y="-291.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#85b7eb">+collection</text>
+<text xml:space="preserve" text-anchor="start" x="366.38" y="-291.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#b5d4f4">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="284.25" y="-263.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#85b7eb">*chapter</text>
+<text xml:space="preserve" text-anchor="start" x="366.38" y="-263.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#b5d4f4">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="284.25" y="-235.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#85b7eb">title</text>
+<text xml:space="preserve" text-anchor="start" x="366.38" y="-235.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#b5d4f4">TEXT</text>
+<polygon fill="none" stroke="#85b7eb" points="277.25,-225.75 277.25,-338 413.5,-338 413.5,-225.75 277.25,-225.75"/>
+</g>
+<!-- book&#45;&gt;topic -->
+<g id="edge1" class="edge">
+<title>book&#45;&gt;topic</title>
+<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M217.99,-281.88C231.32,-281.88 244.82,-281.88 257.77,-281.88"/>
+<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="257.68,-285.38 267.68,-281.88 257.68,-278.38 257.68,-285.38"/>
+<text xml:space="preserve" text-anchor="middle" x="243.75" y="-284.38" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..*</text>
+</g>
+<!-- reading -->
+<g id="node3" class="node">
+<title>reading</title>
+<polygon fill="#3c3489" stroke="none" points="490.62,-392 490.62,-559.75 663.62,-559.75 663.62,-392 490.62,-392"/>
+<polygon fill="#332d77" stroke="none" points="491.62,-531.75 491.62,-558.75 662.62,-558.75 662.62,-531.75 491.62,-531.75"/>
+<text xml:space="preserve" text-anchor="start" x="520.12" y="-541.4" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#cecbf6">reading_progress</text>
+<text xml:space="preserve" text-anchor="start" x="497.62" y="-513" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">*id</text>
+<text xml:space="preserve" text-anchor="start" x="583.88" y="-513" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">pk</text>
+<text xml:space="preserve" text-anchor="start" x="497.62" y="-485.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">+collection</text>
+<text xml:space="preserve" text-anchor="start" x="583.88" y="-485.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="497.62" y="-457.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">+chapter</text>
+<text xml:space="preserve" text-anchor="start" x="583.88" y="-457.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="497.62" y="-429.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">status</text>
+<text xml:space="preserve" text-anchor="start" x="583.88" y="-429.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">read|unread</text>
+<text xml:space="preserve" text-anchor="start" x="497.62" y="-402" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#afa9ec">last_read_at</text>
+<text xml:space="preserve" text-anchor="start" x="583.88" y="-402" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#cecbf6">TS</text>
+<polygon fill="none" stroke="#afa9ec" points="490.62,-392 490.62,-559.75 663.62,-559.75 663.62,-392 490.62,-392"/>
+</g>
+<!-- topic&#45;&gt;reading -->
+<g id="edge2" class="edge">
+<title>topic&#45;&gt;reading</title>
+<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M417.5,-341.93C435.36,-357.01 454.88,-373.5 473.93,-389.58"/>
+<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="471.65,-392.24 481.55,-396.02 476.17,-386.89 471.65,-392.24"/>
+<text xml:space="preserve" text-anchor="middle" x="447.75" y="-375.56" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..1</text>
+</g>
+<!-- attempt -->
+<g id="node4" class="node">
+<title>attempt</title>
+<polygon fill="#633806" stroke="none" points="512,-198 512,-365.75 642.25,-365.75 642.25,-198 512,-198"/>
+<polygon fill="#5a3205" stroke="none" points="513,-337.75 513,-364.75 641.25,-364.75 641.25,-337.75 513,-337.75"/>
+<text xml:space="preserve" text-anchor="start" x="535.88" y="-347.4" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#fac775">quiz_attempt</text>
+<text xml:space="preserve" text-anchor="start" x="519" y="-319" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">*id</text>
+<text xml:space="preserve" text-anchor="start" x="600.75" y="-319" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">pk</text>
+<text xml:space="preserve" text-anchor="start" x="519" y="-291.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">+collection</text>
+<text xml:space="preserve" text-anchor="start" x="600.75" y="-291.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="519" y="-263.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">+chapter</text>
+<text xml:space="preserve" text-anchor="start" x="600.75" y="-263.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="519" y="-235.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">score / total</text>
+<text xml:space="preserve" text-anchor="start" x="600.75" y="-235.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">INT</text>
+<text xml:space="preserve" text-anchor="start" x="519" y="-208" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#ef9f27">taken_at</text>
+<text xml:space="preserve" text-anchor="start" x="600.75" y="-208" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#fac775">TS</text>
+<polygon fill="none" stroke="#ef9f27" points="512,-198 512,-365.75 642.25,-365.75 642.25,-198 512,-198"/>
+</g>
+<!-- topic&#45;&gt;attempt -->
+<g id="edge3" class="edge">
+<title>topic&#45;&gt;attempt</title>
+<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M421.29,-281.88C444.03,-281.88 469.15,-281.88 492.43,-281.88"/>
+<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="492.24,-285.38 502.24,-281.88 492.24,-278.38 492.24,-285.38"/>
+<text xml:space="preserve" text-anchor="middle" x="447.75" y="-284.38" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..*</text>
+</g>
+<!-- fsrs -->
+<g id="node5" class="node">
+<title>fsrs</title>
+<polygon fill="#712b13" stroke="none" points="482,-4 482,-171.75 672.25,-171.75 672.25,-4 482,-4"/>
+<polygon fill="#5f230f" stroke="none" points="483,-143.75 483,-170.75 671.25,-170.75 671.25,-143.75 483,-143.75"/>
+<text xml:space="preserve" text-anchor="start" x="516.38" y="-153.4" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00" fill="#f5c4b3">fsrs_card (Stage 5)</text>
+<text xml:space="preserve" text-anchor="start" x="489" y="-125" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">*id</text>
+<text xml:space="preserve" text-anchor="start" x="630" y="-125" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">pk</text>
+<text xml:space="preserve" text-anchor="start" x="489" y="-97.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">+collection / +chapter</text>
+<text xml:space="preserve" text-anchor="start" x="630" y="-97.25" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">TEXT</text>
+<text xml:space="preserve" text-anchor="start" x="489" y="-69.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">due</text>
+<text xml:space="preserve" text-anchor="start" x="630" y="-69.5" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">TS</text>
+<text xml:space="preserve" text-anchor="start" x="489" y="-41.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">stability / difficulty</text>
+<text xml:space="preserve" text-anchor="start" x="630" y="-41.75" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">REAL</text>
+<text xml:space="preserve" text-anchor="start" x="489" y="-14" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f0997b">reps / lapses / state</text>
+<text xml:space="preserve" text-anchor="start" x="630" y="-14" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#f5c4b3">INT</text>
+<polygon fill="none" stroke="#f0997b" points="482,-4 482,-171.75 672.25,-171.75 672.25,-4 482,-4"/>
+</g>
+<!-- topic&#45;&gt;fsrs -->
+<g id="edge4" class="edge">
+<title>topic&#45;&gt;fsrs</title>
+<path fill="none" stroke="#9c9a92" stroke-width="1.2" d="M417.5,-221.82C432.62,-209.05 448.93,-195.28 465.14,-181.59"/>
+<polygon fill="#9c9a92" stroke="#9c9a92" stroke-width="1.2" points="467.36,-184.3 472.74,-175.18 462.84,-178.95 467.36,-184.3"/>
+<text xml:space="preserve" text-anchor="middle" x="447.75" y="-204.75" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#b4b2a9">1..*</text>
+</g>
+</g>
+</svg>
