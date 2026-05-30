@@ -36,14 +36,11 @@ class TestStructureDetection:
         assert headings[0].level == "section"
         assert headings[0].number == "3.2"
 
-    def test_detect_standalone_number_chapter(self):
-        """Format: sam numer na linii + tytuł na następnej (fairmlbook style)."""
+    def test_bare_number_not_detected_as_chapter(self):
+        """Gołe numery (np. numer strony) NIE powinny być rozdziałami — to false-positives."""
         text = "3\nClassification\nThe goal of classification is..."
         headings = detect_headings(text)
-        assert len(headings) == 1
-        assert headings[0].level == "chapter"
-        assert headings[0].number == "3"
-        assert headings[0].title == "Classification"
+        assert len(headings) == 0
 
     def test_enrich_propagates_chapter(self):
         """Rozdział wykryty na stronie 1 powinien propagować się na stronę 2."""

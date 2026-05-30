@@ -49,7 +49,10 @@ class IngestionPipeline:
         logger.info("Parsed '%s': %d pages", filename, len(documents))
 
         # Krok 2: Wykryj strukturę (rozdziały, sekcje) i wzbogać metadane
-        documents = enrich_with_structure(documents)
+        toc = getattr(parser, "toc", [])
+        if toc:
+            logger.info("PDF TOC found: %d entries", len(toc))
+        documents = enrich_with_structure(documents, toc=toc)
 
         # Krok 3: Podziel dokumenty na chunki
         chunks = self.chunker.chunk(documents)
