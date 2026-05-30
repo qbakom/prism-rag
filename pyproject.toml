@@ -13,7 +13,6 @@ dependencies = [
     "qdrant-client>=1.12",            # klient bazy wektorowej
     "sentence-transformers>=4.1",     # modele embeddingów (wrappuje HuggingFace)
     "httpx>=0.28",                    # klient HTTP do Ollama API
-    "streamlit>=1.56.0",
     "google-genai>=1.69.0",
 ]
 
