@@ -161,8 +161,18 @@ def enrich_with_structure(
     """
     if toc:
         toc_chapters = _parse_toc(toc)
-        if toc_chapters:
-            return _enrich_from_toc(documents, toc_chapters)
+        # Bramka jakości: TOC bywa śmieciowy (zakładki produkcyjne typu
+        # „okładka"/„środki"). Wymagamy ≥6 rozdziałów i żeby żaden nie połykał
+        # >60% stron — inaczej spadamy do segmentów po stronach.
+        if len(toc_chapters) >= 6:
+            enriched = _enrich_from_toc(documents, toc_chapters)
+            dist: dict[str | None, int] = {}
+            for d in enriched:
+                ch = d.metadata.get("chapter")
+                dist[ch] = dist.get(ch, 0) + 1
+            biggest = max(dist.values()) if dist else 0
+            if documents and biggest <= 0.6 * len(documents):
+                return enriched
 
     # Heurystyka regex (jawne „Rozdział N" / „Chapter N").
     current_chapter: str = ""
