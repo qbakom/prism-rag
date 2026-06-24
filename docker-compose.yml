@@ -1,6 +1,7 @@
 services:
   qdrant:
     image: qdrant/qdrant:latest
+    restart: unless-stopped   # wstaje po reboocie/awarii (chroni przed znikaniem kontenera)
     ports:
       - "6333:6333"   # REST API
       - "6334:6334"   # gRPC (szybszy, użyjemy później)
