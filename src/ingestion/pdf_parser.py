@@ -5,11 +5,20 @@ Ekstrakcja per-strona zachowuje informację o lokalizacji tekstu,
 co jest kluczowe dla cytowania źródeł ("Źródło: fizyka.pdf, s. 45").
 """
 
+import logging
 import re
 
 import fitz  # PyMuPDF importuje się jako "fitz" (historyczna nazwa)
 
 from src.ingestion.base import Document
+from src.ingestion.ocr import GeminiOCR
+
+logger = logging.getLogger(__name__)
+
+# Poniżej tylu znaków uznajemy stronę za "obrazową" (skan/pismo) → OCR fallback.
+_MIN_TEXT_CHARS = 30
+# DPI renderowania strony do OCR (kompromis jakość/rozmiar).
+_OCR_DPI = 200
 
 # Symbol font → Unicode. PDF-y z fontem symbolicznym (np. podręczniki z wzorami)
 # kodują =, greckie litery i operatory jako Private Use Area (\uF0xx).
@@ -54,8 +63,11 @@ def _clean_pua(text: str) -> str:
 class PdfParser:
     """Parsuje PDF -> lista Document (jeden na stronę) + TOC."""
 
-    def __init__(self) -> None:
+    def __init__(self, enable_ocr: bool | None = None) -> None:
         self.toc: list[list] = []
+        self._ocr = GeminiOCR()
+        # None → auto: OCR włączony tylko gdy dostępny klucz Gemini.
+        self._enable_ocr = self._ocr.available() if enable_ocr is None else enable_ocr
 
     def parse(self, file_bytes: bytes, filename: str) -> list[Document]:
         """Wyciąga tekst z każdej strony PDF-a.
@@ -68,9 +80,18 @@ class PdfParser:
         self.toc = doc.get_toc()
         documents: list[Document] = []
 
+        ocr_pages = 0
         for page_num in range(len(doc)):
             page = doc[page_num]
             text = _clean_pua(page.get_text()).strip()
+
+            # Strona-obraz (skan/pismo) → render + OCR przez Gemini Vision.
+            if len(text) < _MIN_TEXT_CHARS and self._enable_ocr:
+                png = page.get_pixmap(dpi=_OCR_DPI).tobytes("png")
+                ocr_text = self._ocr.ocr_image(png).strip()
+                if len(ocr_text) > len(text):
+                    text = ocr_text
+                    ocr_pages += 1
 
             if not text:
                 continue
@@ -87,4 +108,6 @@ class PdfParser:
             )
 
         doc.close()
+        if ocr_pages:
+            logger.info("OCR (Gemini Vision) zastosowany do %d stron '%s'", ocr_pages, filename)
         return documents
